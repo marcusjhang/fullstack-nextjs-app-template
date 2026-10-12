@@ -180,9 +180,25 @@ const localConfig = {
 };
 
 
+/**
+ * In the browser, route local development URLs through the current origin so the
+ * site also works when opened from a remote host (e.g. a preview environment).
+ * `localhost:4000` (PHP server) is proxied via the `/php-server` rewrite in `next.config.js`.
+ */
+const toBrowserUrls = (urlConfig) => {
+    if (typeof window === 'undefined' || window.location.hostname === 'localhost') return urlConfig;
+    const res = {};
+    Object.keys(urlConfig).forEach((key) => {
+        res[key] = urlConfig[key]
+            .replace(/^http:\/\/localhost:3000/, '')
+            .replace(/^http:\/\/localhost:4000/, '/php-server');
+    });
+    return res;
+};
+
 const urls = process.env.NODE_ENV === "production" 
 ? config 
-: localConfig;
+: toBrowserUrls(localConfig);
 
 
 export default urls;
