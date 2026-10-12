@@ -16,7 +16,22 @@ if (dockerDeploymentEnabled) exportHtmlEnabled = false;
 //
 const nextConfig = {
     reactStrictMode: true,
-    swcMinify: true,
+
+    // Extra hosts allowed to load dev resources, e.g. `ALLOWED_DEV_ORIGINS="*.example.com,preview.example.org"`
+    allowedDevOrigins: (process.env.ALLOWED_DEV_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
+
+    // Proxy the local PHP server (`backend/server-php.js`) through the same origin
+    // (rewrites are not supported by static exports)
+    ...(exportHtmlEnabled ? {} : {
+        async rewrites() {
+            return [
+                {
+                    source: '/php-server/:path*',
+                    destination: `${process.env.PHP_SERVER_URL || 'http://localhost:4000'}/:path*`,
+                },
+            ]
+        },
+    }),
 
 
     // Use the "https://yourusername.github.io/my-subdirectory/ " in production and localhost for development.
