@@ -66,14 +66,13 @@ const nextConfig = {
     pageExtensions: ['html.jsx', 'jsx', 'js', 'tsx', 'ts'],
     // omit the html extension 
     trailingSlash: false,
-    turbopack: (config) => {
-        config.module.rules.push({
-            test: /\.svg$/,
-            use: ["@svgr/webpack"]
-        });
-
-
-        return config;
+    turbopack: {
+        rules: {
+            '*.svg': {
+                loaders: ['@svgr/webpack'],
+                as: '*.js',
+            },
+        },
     },
     env: {
         exportHtml: `${exportHtmlEnabled}`

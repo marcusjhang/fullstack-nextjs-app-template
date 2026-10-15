@@ -12,15 +12,32 @@ services:
       - NODE_ENV=development
       - EXPORT_ENABLED=false
       - PORT=3000
+      - PHP_SERVER_URL=http://php:4000
       - BASE44_PREVIEW_MODE
       - BASE44_PUBLIC_HOST_SUFFIX
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-    command: ["sh", "-ec", "npm install --no-audit --no-fund && exec npm run dev"]
+    command: ["sh", "-ec", "npm ci --no-audit --no-fund && exec node server.js"]
+    depends_on:
+      php:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 6
       start_period: 90s
+    restart: on-failure
+  php:
+    image: php:8.3-cli-alpine
+    working_dir: /app/public/server
+    volumes:
+      - ./:/app
+    command: ["php", "-S", "0.0.0.0:4000", "-t", "."]
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(is_array(json_decode(file_get_contents('http://127.0.0.1:4000/curd-data-init.php'), true)) ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: on-failure

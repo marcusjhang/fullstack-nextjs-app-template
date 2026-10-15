@@ -196,14 +196,8 @@ const toBrowserUrls = (urlConfig) => {
     return res;
 };
 
-// In development, when the browser is on a non-localhost host (e.g. a preview
-// environment), use the production demo URLs so requests don't hit a local
-// PHP server (port 4000) that isn't running outside localhost.
-const isRemoteBrowser = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
 const urls = process.env.NODE_ENV === "production"
 ? config
-: isRemoteBrowser
-? toBrowserUrls(config)
 : toBrowserUrls(localConfig);
 
 

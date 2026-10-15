@@ -1,27 +1,18 @@
 # Base44 Development Environment
 
-## Overview
+## Running and verifying
 
-This is a full-stack Next.js application template (App Router) with a custom Express server (`server.js`). The app runs via `npm run dev` which starts the custom server in development mode.
+Run `docker compose -f docker-compose.base44.yml up -d --build`. Both `web` and `php` must become healthy. The web container installs the root lockfile with `npm ci`, then runs the custom Express/Next development server directly to avoid npm reporting SIGTERM as a failure on normal container stops. Source is bind-mounted; Watchpack polling enables hot reload.
 
-## Running the App
+The development homepage calls `curd-data-init.php` on mount. PHP is therefore required, not optional. The `php` service uses PHP's development server to execute the existing scripts from `public/server` on each request, without the optional Node wrapper or its unrelated backend dependencies. No database, migrations, or external credentials are required. CRUD storage is the existing `public/server/curd-data/posts.json` file; do not overwrite or reset existing records. Other backend microservice demos are not started.
 
-```sh
-docker compose -f docker-compose.base44.yml up -d --build
-```
+`PHP_SERVER_URL=http://php:4000` in Compose uses the existing Next `/php-server` rewrite so browser requests stay same-origin. Keep development API configuration using real local endpoints rather than switching to static production JSON: static fixtures do not implement authentication or persistent edits.
 
-The app is served on port 3000. No external credentials or database are required — demo data is fetched from public GitHub raw URLs.
+Verify `/`, `/php-server/curd-data-init.php`, and `/php-server/curd.php` return HTTP 200 and valid content. In the browser, confirm the automatic initialization request returns 200 and there are no failed requests or unhandled errors. `/sign-in.html` is public; signed-in dashboard checks require the user's session. The template's plain anchor navigation performs a full document load; preview pushState navigation may change the URL without rendering the target, so use an explicit route capture for route checks.
 
-## Key Details
+## Configuration notes
 
-- **Custom server**: `server.js` wraps Next.js with Express. The dev command is `npm run dev` (`EXPORT_ENABLED=false NODE_ENV=development node server.js`).
-- **Binding**: `server.js` binds to `0.0.0.0` (configurable via `PORT` env var, defaults to 3000) so it works inside Docker.
-- **Preview origins**: `next.config.js` conditionally adds the Base44 preview origin to `allowedDevOrigins` when `BASE44_PREVIEW_MODE === '1'`.
-- **File watching**: `CHOKIDAR_USEPOLLING=true` and `WATCHPACK_POLLING=true` are set for reliable hot reload under Docker bind mounts.
-- **No database**: All demo API routes return static JSON or fetch from public GitHub URLs. No migrations or seeds needed.
-- **Optional backend services**: The `backend/` directory contains optional Express microservices (PHP server, auth, upload, socket, etc.) that run on separate ports. These are NOT started by the Base44 compose and are not needed for the preview.
-- **Backend dependencies**: `backend/` has its own `package.json` with separate dependencies (better-sqlite3, php-express, etc.). These are not installed in the preview — only the root `package.json` dependencies are.
-
-## Verification
-
-After starting, curl `http://localhost:3000/` — it should return the homepage HTML. Check `docker compose -f docker-compose.base44.yml logs web` for the `> Ready on http://0.0.0.0:3000` message and Next.js dev compilation output.
+- `server.js` binds to `0.0.0.0` for Docker and accepts `PORT` (default 3000).
+- `next.config.js` appends the exact public preview origin only when `BASE44_PREVIEW_MODE === '1'` and `BASE44_PUBLIC_HOST_SUFFIX` is present. With the flag unset or any other value, the original `ALLOWED_DEV_ORIGINS` configuration is unchanged. Compose passes both variables through without hardcoding platform hostnames.
+- SVG components require the supported Turbopack `rules` object, not a Webpack-style function.
+- A hydration warning whose only differences are `data-gr-ext-installed` and `data-new-gr-c-s-check-loaded` on `body` is caused by the user's grammar browser extension. Do not suppress hydration warnings globally or change application markup to hide it; check a clean browser.
