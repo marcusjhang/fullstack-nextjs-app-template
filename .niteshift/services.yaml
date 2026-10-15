@@ -1,0 +1,19 @@
+services:
+  # Preserve the repository's PM2 stack as one foreground process tree.
+  # The PHP API stays on localhost:4000 behind Next's /php-server rewrite.
+  - name: web
+    command: /opt/niteshift-pm2/node_modules/.bin/pm2-runtime .niteshift/files/ecosystem.config.cjs
+    port: 3000
+    stopGracePeriod: 30s
+    environment:
+      - name: PM2_HOME
+        value: /tmp/niteshift-fullstack-nextjs-pm2
+      - name: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - name: ALLOWED_DEV_ORIGINS
+        value: "*.preview.niteshift.dev"
+      - name: PHP_SERVER_URL
+        value: http://localhost:4000
+    auth:
+      type: cookie-file
+      command: node .niteshift/files/preview-auth.cjs

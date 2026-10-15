@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="${NITESHIFT_CHECKOUT_ROOT:?NITESHIFT_CHECKOUT_ROOT is required}/fullstack-nextjs-app-template"
+cd "$repo"
+
+# PHP executes the bundled demo API; ffmpeg supports the video examples.
+# Install native build prerequisites for better-sqlite3 in the backend package.
+packages=()
+command -v php >/dev/null || packages+=(php-cli)
+command -v ffmpeg >/dev/null || packages+=(ffmpeg)
+command -v g++ >/dev/null || packages+=(g++)
+command -v make >/dev/null || packages+=(make)
+command -v python3 >/dev/null || packages+=(python3)
+if ((${#packages[@]})); then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}"
+fi
+
+# Fingerprint manifests and the Node ABI so cached tasks skip current installs.
+# npm ci uses the committed lockfiles and never rewrites either package manifest.
+install_dependencies() (
+  cd "$1"
+  fingerprint="$(cat package.json package-lock.json; node -p 'process.versions.modules')"
+  fingerprint="$(printf '%s' "$fingerprint" | sha256sum | cut -d ' ' -f 1)"
+  stamp=node_modules/.niteshift-dependencies
+  if [[ ! -f "$stamp" || "$(cat "$stamp")" != "$fingerprint" || ! -f node_modules/.package-lock.json ]]; then
+    npm ci --include=dev --no-audit --no-fund
+    printf '%s\n' "$fingerprint" > "$stamp"
+  fi
+)
+install_dependencies "$repo"
+install_dependencies "$repo/backend"
+
+# Keep the supervisor tooling out of the application's dependencies and Node runtime.
+tools=/opt/niteshift-pm2
+if [[ ! -f "$tools/node_modules/pm2/package.json" ]] ||
+   [[ "$(node -p "require('$tools/node_modules/pm2/package.json').version")" != 7.0.4 ]]; then
+  npm install --prefix "$tools" --no-save --no-package-lock --no-audit --no-fund pm2@7.0.4
+fi
