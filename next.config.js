@@ -18,7 +18,12 @@ const nextConfig = {
     reactStrictMode: true,
 
     // Extra hosts allowed to load dev resources, e.g. `ALLOWED_DEV_ORIGINS="*.example.com,preview.example.org"`
-    allowedDevOrigins: (process.env.ALLOWED_DEV_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
+    allowedDevOrigins: [
+        ...(process.env.ALLOWED_DEV_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
+        ...(process.env.BASE44_PREVIEW_MODE === '1' && process.env.BASE44_PUBLIC_HOST_SUFFIX
+            ? ['3000-' + process.env.BASE44_PUBLIC_HOST_SUFFIX]
+            : []),
+    ],
 
     // Proxy the local PHP server (`backend/server-php.js`) through the same origin
     // (rewrites are not supported by static exports)

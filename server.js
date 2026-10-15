@@ -4,8 +4,8 @@ const path = require('path');
 const express = require('express')
 
 let dev = process.env.NODE_ENV !== 'production'; // if "production", need run `npm run build` first
-const hostname = 'localhost';
-const port = 3000;
+const hostname = '0.0.0.0';
+const port = process.env.PORT || 3000;
 // when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -89,7 +89,7 @@ app.prepare().then(() => {
     });
 
     
-    server.listen(port, (err) => {
+    server.listen(port, hostname, (err) => {
       if (err) throw err
       console.log(`> Ready on http://${hostname}:${port}`)
     });
